@@ -9,6 +9,11 @@ import (
 	"github.com/joho/godotenv"
 )
 
+type res struct {
+	Data any
+	Err  bool
+}
+
 // ================= main db connection ====================
 
 // main postgres db connection
