@@ -1,6 +1,7 @@
 package router
 
 import (
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"stockServer/util"
@@ -14,6 +15,10 @@ func GetUserInfo(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
 	err := db.QueryRow(`SELECT * FROM account WHERE discord_id=$1;`, userId).
 		Scan(&userInfo.DiscordId, &userInfo.Name, &userInfo.Coin, &userInfo.Bank, &userInfo.Tax, &userInfo.GambleTicket, &userInfo.Stock)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			util.ResOk(w, 404, "User Not Found")
+			return
+		}
 		util.GlobalErr(w, 500, "cannot get info", err)
 		return
 	}
