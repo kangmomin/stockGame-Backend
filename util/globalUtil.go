@@ -2,7 +2,6 @@ package util
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"os"
 
@@ -22,8 +21,7 @@ var DB = connDB()
 
 func connDB() *sql.DB {
 	godotenv.Load(".env")
-	dbinfo := fmt.Sprintf("host=containers-us-west-74.railway.app:7103 user=%s password=%s dbname=%s sslmode=disable",
-		os.Getenv("DB_USER"), os.Getenv("DB_PWD"), os.Getenv("DB_NAME"))
+	dbinfo := `postgresql://` + os.Getenv("DB_USER") + `:` + os.Getenv("DB_PWD") + `@containers-us-west-72.railway.app:6455/railway`
 
 	db, err := sql.Open("postgres", dbinfo)
 	if err != nil {
