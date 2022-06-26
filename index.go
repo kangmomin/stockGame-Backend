@@ -16,6 +16,7 @@ func main() {
 	// stock
 	app.GET("/stock/all", router.AllStockList)
 	app.POST("/stock/buy", router.BuyStock)
+	app.POST("/stock/sell", router.SellStock)
 
 	http.ListenAndServe(":8080", app)
 }

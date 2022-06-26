@@ -7,7 +7,7 @@ type Stock struct {
 	Date    []string `json:"date"`
 }
 
-type BuyStock struct {
+type DealStock struct {
 	StockName string `json:"stock_name"`
 	UserId    string `json:"user_id"`
 	Count     int    `json:"count"`

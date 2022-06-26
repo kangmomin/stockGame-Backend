@@ -38,7 +38,7 @@ func AllStockList(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 
 func BuyStock(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var (
-		buyInfo   util.BuyStock
+		buyInfo   util.DealStock
 		stockInfo util.Stock
 		price     int
 		userCoin  int
@@ -85,7 +85,7 @@ func BuyStock(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	_, err = db.Exec(`
 		UPDATE user_stock SET count=$1, cost=$2 WHERE user_id=$3 NOT EXIST (
 			INSERT INTO user_stock VALUES ($3, $4, $2, $1)
-			);`, buyInfo.Count, cost, buyInfo.UserId, buyInfo.StockName)
+		);`, buyInfo.Count, cost, buyInfo.UserId, buyInfo.StockName)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -97,4 +97,52 @@ func BuyStock(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 
 	util.ResOk(w, 200, "update success")
+}
+
+func SellStock(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	var (
+		sellInfo   util.DealStock
+		stockInfo  util.Stock
+		price      int
+		stockCount int
+	)
+
+	err := json.NewDecoder(r.Body).Decode(&sellInfo)
+	if err != nil {
+		util.GlobalErr(w, 400, "cannot read data", nil)
+		return
+	}
+
+	// 가장 최신 주가
+	err = db.QueryRow(`
+			SELECT s.stock_id, s.data[array_upper(data, 1)], a.count FROM stocks s 
+			INNER JOIN user_stock u ON a.user_id=$2 AND a.name=$1
+			WHERE s.stock_name=$1 AND expire_t IS NULL;`, sellInfo.StockName, sellInfo.UserId).
+		Scan(stockInfo.StockId, price, stockCount)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			util.GlobalErr(w, 404, "Not Found Data", nil)
+			return
+		}
+		util.GlobalErr(w, 500, "Get Data error", err)
+		return
+	}
+
+	if stockCount < sellInfo.Count {
+		util.GlobalErr(w, 400, "over stock's count", nil)
+		return
+	}
+
+	_, err = db.Exec(`UPDATE account SET coin=(
+		SELECT coin FROM account WHERE discord_id=$1
+	) + $2`, sellInfo.UserId, sellInfo.Count*price)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			util.GlobalErr(w, 404, "Not Found User", nil)
+			return
+		}
+		util.GlobalErr(w, 400, "update error", err)
+		return
+	}
 }
