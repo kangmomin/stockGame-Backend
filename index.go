@@ -10,8 +10,12 @@ import (
 func main() {
 	app := httprouter.New()
 
+	// user
 	app.GET("/user/info/:userId", router.GetUserInfo)
+
+	// stock
 	app.GET("/stock/all", router.AllStockList)
+	app.POST("/stock/buy", router.BuyStock)
 
 	http.ListenAndServe(":8080", app)
 }
