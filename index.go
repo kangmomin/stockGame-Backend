@@ -12,6 +12,7 @@ func main() {
 
 	// user
 	app.GET("/user/info/:userId", router.GetUserInfo)
+	app.POST("/user/my", router.GetMyInfo)
 
 	// stock
 	app.GET("/stock/all", router.AllStockList)

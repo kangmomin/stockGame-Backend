@@ -12,3 +12,10 @@ type DealStock struct {
 	UserId    string `json:"user_id"`
 	Count     int    `json:"count"`
 }
+
+type UserStock struct {
+	UserId string `json:"user_id"`
+	Name   string `json:"name"`
+	Cost   int    `json:"cost"`
+	Count  int    `json:"count"`
+}
