@@ -68,12 +68,12 @@ func getNewStock() int {
 	s := rand.NewSource(time.Now().UnixMicro())
 	r := rand.New(s)
 
-	varPrice := r.Intn(100)
+	varPrice := r.Intn(101)
 	if varPrice > 80 {
-		varPrice = r.Intn(100)
+		varPrice = r.Intn(101)
 	}
 
-	if r.Intn(1) == 0 {
+	if r.Intn(2) == 0 {
 		varPrice *= -1
 	}
 
