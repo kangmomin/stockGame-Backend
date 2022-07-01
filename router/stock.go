@@ -3,16 +3,33 @@ package router
 import (
 	"database/sql"
 	"encoding/json"
+	"log"
 	"net/http"
 	"stockServer/util"
+	"strconv"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
-	pg "github.com/lib/pq"
 )
 
 func AllStockList(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
-	var stocks []util.Stock
-	rows, err := db.Query(`SELECT stock_id, name, data, date FROM stocks WHERE expire_t IS NULL`)
+	var stocks []util.AllStockData
+	rows, err := db.Query(`
+	SELECT 
+		stock_name, 
+		ARRAY_TO_STRING(ARRAY_AGG(price), ",")
+	FROM 
+		stock_data
+	WHERE 
+		stock_name=(
+			SELECT name FROM stocks WHERE isValid=true
+		)
+	GROUP BY
+		stock_name
+	ORDER BY 
+		update_at DESC
+	`)
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			util.GlobalErr(w, 404, "Data Not Found", nil)
@@ -23,8 +40,20 @@ func AllStockList(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 	}
 
 	for rows.Next() {
-		var stock util.Stock
-		err := rows.Scan(&stock.StockId, &stock.Name, pg.Array(&stock.Data), pg.Array(&stock.Date))
+		var stock util.AllStockData
+		err := rows.Scan(&stock.Name, &stock.Price)
+
+		strPrice := strings.Split(stock.Price, ",")
+		for _, i := range strPrice {
+			p, err := strconv.Atoi(i)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+
+			stock.PriceList = append(stock.PriceList, p)
+		}
+
 		if err != nil {
 			util.GlobalErr(w, 500, "GET Data ERROR", err)
 			return
@@ -54,8 +83,17 @@ func BuyStock(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 
 	// 가장 최신 주가
-	err = db.QueryRow(`SELECT stock_id, data[array_upper(data, 1)] FROM stocks WHERE stock_name=$1 AND expire_t IS NULL;`, buyInfo.StockName).
-		Scan(stockInfo.StockId, price)
+	err = db.QueryRow(`
+	SELECT 
+		
+	FROM
+		stocks 
+	WHERE
+		stock_name=$1 
+	AND 
+		expire_t IS NULL;
+	`, buyInfo.StockName).Scan(stockInfo.StockId, price)
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			util.GlobalErr(w, 404, "Not Found Data", nil)
@@ -83,9 +121,18 @@ func BuyStock(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 
 	_, err = db.Exec(`
-		UPDATE user_stock SET count=$1, cost=$2 WHERE user_id=$3 NOT EXIST (
-			INSERT INTO user_stock VALUES ($3, $4, $2, $1)
-		);`, buyInfo.Count, cost, buyInfo.UserId, buyInfo.StockName)
+	UPDATE 
+		user_stock 
+	SET 
+		count=$1, cost=$2 
+	WHERE 
+		user_id=$3 NOT EXIST (
+			INSERT INTO
+				user_stock
+			VALUES
+				($3, $4, $2, $1)
+		);
+	`, buyInfo.Count, cost, buyInfo.UserId, buyInfo.StockName)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -115,9 +162,21 @@ func SellStock(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 	// 가장 최신 주가
 	err = db.QueryRow(`
-			SELECT s.stock_id, s.data[array_upper(data, 1)], a.count FROM stocks s 
-			INNER JOIN user_stock u ON a.user_id=$2 AND a.name=$1
-			WHERE s.stock_name=$1 AND expire_t IS NULL;`, sellInfo.StockName, sellInfo.UserId).
+	SELECT 
+		s.stock_id, s.data[array_upper(data, 1)], a.count 
+	FROM 
+		stocks s 
+	INNER JOIN 
+		user_stock a
+	ON
+		a.user_id=$2 
+	AND 
+		a.name=$1
+	WHERE
+		s.stock_name=$1 
+	AND
+		expire_t IS NULL;
+	`, sellInfo.StockName, sellInfo.UserId).
 		Scan(stockInfo.StockId, price, stockCount)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -133,9 +192,19 @@ func SellStock(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		return
 	}
 
-	_, err = db.Exec(`UPDATE account SET coin=(
-		SELECT coin FROM account WHERE discord_id=$1
-	) + $2`, sellInfo.UserId, sellInfo.Count*price)
+	_, err = db.Exec(`
+	UPDATE 
+		account 
+	SET 
+		coin=(
+			SELECT 
+				coin 
+			FROM 
+				account 
+			WHERE 
+				discord_id=$1
+		) + $2
+	`, sellInfo.UserId, sellInfo.Count*price)
 
 	if err != nil {
 		if err == sql.ErrNoRows {

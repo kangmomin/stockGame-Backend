@@ -16,6 +16,12 @@ type StockData struct {
 	Name      string    `json:"name"`
 }
 
+type AllStockData struct {
+	Name      string `json:"name"`
+	Price     string
+	PriceList []int `json:"price"`
+}
+
 type DealStock struct {
 	StockName string `json:"stock_name"`
 	UserId    string `json:"user_id"`
