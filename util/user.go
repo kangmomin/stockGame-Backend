@@ -48,16 +48,13 @@ type DiscordUserInfo struct {
 // 유저가 존재하는지 디스코드 api를 통해 확인
 func IsValidUserId(t string, userId string) bool {
 	req, err := http.NewRequest("GET", "https://discord.com/api/v9/users/"+userId, nil)
-	log.Println(err)
+	if err != nil {
+		log.Println(err)
+	}
 
 	req.Header.Add("Authorization", "Bot "+t)
 	c := http.Client{}
-	_, err = c.Do(req)
+	resp, _ := c.Do(req)
 
-	if err != nil {
-		log.Println(err)
-		return false
-	}
-
-	return true
+	return resp.Status == "200 OK"
 }
