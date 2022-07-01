@@ -19,6 +19,7 @@ func main() {
 	// user
 	app.GET("/user/info/:userId", router.GetUserInfo)
 	app.POST("/user/my", router.GetMyInfo)
+	app.POST("/user/sign-up", router.SignUp)
 
 	// stock
 	app.GET("/stock/all", router.AllStockList)
