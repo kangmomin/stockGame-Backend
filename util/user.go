@@ -12,13 +12,6 @@ type UserInfo struct {
 	Bank         int    `json:"bank"`
 	Tax          int    `json:"tax"`
 	GambleTicket int    `json:"gamble_ticket"`
-	Stock        []struct {
-		Name string `json:"name"`
-
-		// 원가
-		Cost  int `json:"cost"`
-		Count int `json:"count"`
-	} `json:"stock"`
 }
 
 type UserStock struct {
