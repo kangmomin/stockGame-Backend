@@ -48,7 +48,14 @@ func GetMyInfo(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		return
 	}
 
-	err = db.QueryRow(`SELECT * FROM account WHERE user_id=$1;`, user.Id).Scan(&userInfo.DiscordId, &userInfo.Name, &userInfo.Coin, &userInfo.Bank, &userInfo.Bank)
+	err = db.QueryRow(`
+	SELECT 
+		name, coin, bank, tax, gamble_ticket 
+	FROM 
+		account 
+	WHERE 
+		user_id=$1;
+	`, user.Id).Scan(&userInfo.Name, &userInfo.Coin, &userInfo.Bank, &userInfo.Tax, &userInfo.GambleTicket)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			util.ResOk(w, 404, "User Not Found")
@@ -78,7 +85,15 @@ func GetMyInfo(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		userStocks = append(userStocks, userStock)
 	}
 
-	util.ResOk(w, 200, userStocks)
+	totalVal := struct {
+		UserInfo util.UserInfo    `json:"user_info"`
+		Stocks   []util.UserStock `json:"user_stock"`
+	}{
+		UserInfo: userInfo,
+		Stocks:   userStocks,
+	}
+
+	util.ResOk(w, 200, totalVal)
 }
 
 func SignUp(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
