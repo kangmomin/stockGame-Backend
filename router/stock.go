@@ -17,17 +17,15 @@ func AllStockList(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 	rows, err := db.Query(`
 	SELECT 
 		stock_name, 
-		ARRAY_TO_STRING(ARRAY_AGG(price), ",")
+		ARRAY_TO_STRING(ARRAY_AGG(price), ',')
 	FROM 
 		stock_data
 	WHERE 
 		stock_name=(
-			SELECT name FROM stocks WHERE isValid=true
+			SELECT name FROM stocks WHERE 'isVaild'='t'
 		)
 	GROUP BY
 		stock_name
-	ORDER BY 
-		update_at DESC
 	`)
 
 	if err != nil {
@@ -55,7 +53,7 @@ func AllStockList(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 		}
 
 		if err != nil {
-			util.GlobalErr(w, 500, "GET Data ERROR", err)
+			util.GlobalErr(w, 500, "Parse Data ERROR", err)
 			return
 		}
 
