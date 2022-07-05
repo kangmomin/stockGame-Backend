@@ -36,11 +36,11 @@ func GetUserInfo(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
 
 	stockData, err := db.Query(`SELECT name, cost, count FROM user_stock WHERE user_id=$1;`, userId)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			util.ResOk(w, 404, "User Not Found")
-			return
-		}
 		util.GlobalErr(w, 500, "cannot get info", err)
+		return
+	}
+	if !stockData.Next() {
+		util.ResOk(w, 404, "User Not Found")
 		return
 	}
 

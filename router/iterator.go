@@ -29,11 +29,15 @@ func UpdateStock() {
 			stock_data 
 		WHERE 
 			stock_name=(
-				SELECT name FROM stocks WHERE isValid=false
+				SELECT name FROM stocks WHERE 'isValid'='t'
 			);
 		`)
 	if err != nil {
 		log.Println(err)
+		return
+	}
+
+	if !rows.Next() {
 		return
 	}
 
