@@ -7,7 +7,6 @@ import (
 	"stockServer/util"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/lib/pq"
 )
 
 func GetUserInfo(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
@@ -82,14 +81,14 @@ func SignUp(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		return
 	}
 
+	err = db.QueryRow(`SELECT user_id FROM account WHERE userId=$1`, &signUpData.UserId).Err()
+	if err != nil {
+		util.GlobalErr(w, 400, "already sign-up account", nil)
+		return
+	}
+
 	_, err = db.Exec(`INSERT INTO account(user_id, name) VALUES ($1, $2)`, &signUpData.UserId, &signUpData.Name)
 	if err != nil {
-		if err, ok := err.(*pq.Error); ok {
-			if err.Code == "23505" {
-				util.GlobalErr(w, 400, "already sign-up account", nil)
-				return
-			}
-		}
 		util.GlobalErr(w, 400, "cannot create", err)
 		return
 	}
