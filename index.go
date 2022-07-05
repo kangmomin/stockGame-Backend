@@ -12,8 +12,10 @@ func main() {
 	app := httprouter.New()
 
 	go func() {
-		router.UpdateStock()
-		time.Sleep(time.Minute * 1)
+		for {
+			router.UpdateStock()
+			time.Sleep(time.Minute * 1)
+		}
 	}()
 
 	// user
