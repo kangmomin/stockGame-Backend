@@ -65,10 +65,9 @@ func AllStockList(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 
 func BuyStock(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var (
-		buyInfo   util.DealStock
-		stockInfo util.Stock
-		price     int
-		userCoin  int
+		buyInfo  util.DealStock
+		price    int
+		userCoin int
 
 		// 주식 원가
 		cost int
@@ -80,17 +79,30 @@ func BuyStock(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		return
 	}
 
+	err = db.QueryRow(`SELECT stock_id FROM stocks WHERE 'isValid'='t' AND stock_name=$1`, &buyInfo.StockName).Err()
+	if err != nil {
+		if err == sql.ErrNoRows {
+			util.GlobalErr(w, 400, "Not found valid stocks", nil)
+			return
+		}
+
+		util.GlobalErr(w, 500, "Can Not found valid stocks", err)
+		return
+	}
+
 	// 가장 최신 주가
 	err = db.QueryRow(`
 	SELECT 
-		
+		price
 	FROM
-		stocks 
+		stock_data 
 	WHERE
 		stock_name=$1 
 	AND 
-		expire_t IS NULL;
-	`, buyInfo.StockName).Scan(stockInfo.StockId, price)
+		data_id=(
+			SELECT MAX(data_id) FROM stock_data WHERE stock_name=$1
+		)
+	`, buyInfo.StockName).Scan(price)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
