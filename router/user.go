@@ -11,52 +11,21 @@ import (
 )
 
 func GetUserInfo(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
-	var userInfo util.UserInfo
-	userId := p.ByName("userId")
-	err := db.QueryRow(`SELECT * FROM account WHERE discord_id=$1;`, userId).
-		Scan(&userInfo.DiscordId, &userInfo.Name, &userInfo.Coin, &userInfo.Bank, &userInfo.Tax, &userInfo.GambleTicket)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			util.ResOk(w, 404, "User Not Found")
-			return
-		}
-		util.GlobalErr(w, 500, "cannot get info", err)
-		return
-	}
-	data, err := json.Marshal(userInfo)
-
-	if err != nil {
-		util.GlobalErr(w, 500, "idk", err)
-	}
-
-	util.ResOk(w, 200, string(data))
-}
-
-func GetMyInfo(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var (
 		userInfo   util.UserInfo
 		userStocks []util.UserStock
-
-		// body data
-		user struct {
-			Id string `json:"user_id"`
-		}
 	)
 
-	err := json.NewDecoder(r.Body).Decode(&user)
-	if err != nil {
-		util.GlobalErr(w, 400, "raw type error", nil)
-		return
-	}
+	userId := p.ByName("userId")
 
-	err = db.QueryRow(`
+	err := db.QueryRow(`
 	SELECT 
 		name, coin, bank, tax, gamble_ticket 
 	FROM 
 		account 
 	WHERE 
 		user_id=$1;
-	`, user.Id).Scan(&userInfo.Name, &userInfo.Coin, &userInfo.Bank, &userInfo.Tax, &userInfo.GambleTicket)
+	`, userId).Scan(&userInfo.Name, &userInfo.Coin, &userInfo.Bank, &userInfo.Tax, &userInfo.GambleTicket)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			util.ResOk(w, 404, "User Not Found")
@@ -66,7 +35,7 @@ func GetMyInfo(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		return
 	}
 
-	stockData, err := db.Query(`SELECT name, cost, count FROM user_stock WHERE user_id=$1;`, user.Id)
+	stockData, err := db.Query(`SELECT name, cost, count FROM user_stock WHERE user_id=$1;`, userId)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			util.ResOk(w, 404, "User Not Found")
@@ -117,7 +86,7 @@ func SignUp(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	if err != nil {
 		if err, ok := err.(*pq.Error); ok {
 			if err.Code == "23505" {
-				util.GlobalErr(w, 400, "already sign-up account", err)
+				util.GlobalErr(w, 400, "already sign-up account", nil)
 				return
 			}
 		}
