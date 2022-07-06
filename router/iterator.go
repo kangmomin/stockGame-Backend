@@ -37,15 +37,14 @@ func UpdateStock() {
 		return
 	}
 
-	if !rows.Next() {
-		return
-	}
-
 	for rows.Next() {
 		var (
 			newStock util.StockData
 		)
-		query += `($,` + strconv.Itoa(i) + ` $` + strconv.Itoa(i+1) + `)`
+		if i != 1 {
+			query += ","
+		}
+		query += `($` + strconv.Itoa(i) + `, $` + strconv.Itoa(i+1) + `)`
 		varPrice := getNewStock()
 		err = rows.Scan(&newStock.Name, &newStock.Price)
 		if err != nil {
@@ -54,13 +53,20 @@ func UpdateStock() {
 		}
 
 		newStock.Price += varPrice
+		if newStock.Price < 0 {
+			newStock.Price = 0
+		}
 		newStocks = append(newStocks, newStock.Name, newStock.Price)
 		i += 2
 	}
 
+	if len(query) < 5 {
+		return
+	}
+
 	_, err = db.Exec(`
 		INSERT INTO
-			stock_data(price, stock_name) 
+			stock_data(stock_name, price) 
 		VALUES`+query, newStocks...)
 	if err != nil {
 		log.Println(err)
