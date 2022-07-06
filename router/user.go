@@ -39,10 +39,6 @@ func GetUserInfo(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
 		util.GlobalErr(w, 500, "cannot get info", err)
 		return
 	}
-	if !stockData.Next() {
-		util.ResOk(w, 404, "User Not Found")
-		return
-	}
 
 	for stockData.Next() {
 		var userStock util.UserStock
