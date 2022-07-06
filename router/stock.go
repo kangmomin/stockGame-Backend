@@ -22,7 +22,7 @@ func AllStockList(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 		stock_data
 	WHERE 
 		stock_name=(
-			SELECT name FROM stocks WHERE 'isVaild'='t'
+			SELECT name FROM stocks WHERE is_valid='t'
 		)
 	GROUP BY
 		stock_name

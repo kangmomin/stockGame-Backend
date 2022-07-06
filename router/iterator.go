@@ -29,7 +29,7 @@ func UpdateStock() {
 			stock_data 
 		WHERE 
 			stock_name=(
-				SELECT name FROM stocks WHERE 'isValid'='t'
+				SELECT name FROM stocks WHERE is_valid='t'
 			);
 		`)
 	if err != nil {
