@@ -75,11 +75,11 @@ func BuyStock(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 	err := json.NewDecoder(r.Body).Decode(&buyInfo)
 	if err != nil {
-		util.GlobalErr(w, 400, "cannot read data", nil)
+		util.GlobalErr(w, 400, "cannot read data", err)
 		return
 	}
 
-	err = db.QueryRow(`SELECT stock_id FROM stocks WHERE 'isValid'='t' AND stock_name=$1`, &buyInfo.StockName).Err()
+	err = db.QueryRow(`SELECT stock_id FROM stocks WHERE 'is_valid'='t' AND name=$1`, &buyInfo.StockName).Err()
 	if err != nil {
 		if err == sql.ErrNoRows {
 			util.GlobalErr(w, 400, "Not found valid stocks", nil)
