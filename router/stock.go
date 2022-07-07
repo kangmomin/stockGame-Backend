@@ -72,7 +72,8 @@ func AllStockList(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 
 func BuyStock(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var (
-		buyInfo  util.DealStock
+		buyInfo util.DealStock
+		// 주식 가격
 		price    int
 		userCoin int
 
@@ -157,13 +158,20 @@ func BuyStock(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		return
 	} else {
 		_, err = db.Exec(`
-			UPDATE user_stock SET cost=$3, count=$4 WHERE user_id=$1 AND name=$2
+			UPDATE user_stock SET cost=$3, count=count + $4 WHERE user_id=$1 AND name=$2
 		`, buyInfo.UserId, buyInfo.StockName, cost, buyInfo.Count)
 
 		if err != nil {
 			util.GlobalErr(w, 500, "Update Data error", err)
 			return
 		}
+	}
+
+	userCoin -= (price * buyInfo.Count)
+	_, err = db.Exec(`UPDATE account SET coin=$2 WHERE user_id=$1`, buyInfo.UserId, userCoin)
+	if err != nil {
+		util.GlobalErr(w, 500, "Update Data error", err)
+		return
 	}
 
 	util.ResOk(w, 200, "update success")
