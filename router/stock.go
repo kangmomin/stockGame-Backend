@@ -142,6 +142,8 @@ func BuyStock(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		SELECT user_id FROM user_stock WHERE user_id=$1 AND name=$2;
 	`, buyInfo.UserId, buyInfo.StockName).Scan(&buyInfo.UserId)
 
+	// 주식 수익률 = 현재 주가 / 이때까지 구매한 총액 * 100 - 100
+	// 수익금 = 구매가 * 수익률 * 구매량
 	if err == sql.ErrNoRows {
 		_, err = db.Exec(`
 			INSERT INTO
@@ -158,7 +160,7 @@ func BuyStock(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		return
 	} else {
 		_, err = db.Exec(`
-			UPDATE user_stock SET cost=$3, count=count + $4 WHERE user_id=$1 AND name=$2
+			UPDATE user_stock SET cost=cost + $3, count=count + $4 WHERE user_id=$1 AND name=$2
 		`, buyInfo.UserId, buyInfo.StockName, cost, buyInfo.Count)
 
 		if err != nil {
