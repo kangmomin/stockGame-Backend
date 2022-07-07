@@ -18,8 +18,7 @@ type StockData struct {
 
 type AllStockData struct {
 	Name      string `json:"name"`
-	Price     string
-	PriceList []int `json:"price"`
+	PriceList []int  `json:"price"`
 }
 
 type DealStock struct {

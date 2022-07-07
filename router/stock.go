@@ -16,16 +16,22 @@ func AllStockList(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 	var stocks []util.AllStockData
 	rows, err := db.Query(`
 	SELECT 
-		stock_name, 
-		ARRAY_TO_STRING(ARRAY_AGG(price), ',')
+		s.stock_name, 
+		ARRAY_TO_STRING(ARRAY_AGG(s.price), ',')
 	FROM 
-		stock_data
-	WHERE 
-		stock_name=(
-			SELECT name FROM stocks WHERE is_valid='t'
-		)
+		stock_data s
+	INNER JOIN (
+		SELECT 
+			name
+		FROM
+			stocks s
+		WHERE
+			is_valid='t'
+		) T
+	ON 
+		s.stock_name = T.name
 	GROUP BY
-		stock_name
+		s.stock_name
 	`)
 
 	if err != nil {
@@ -37,11 +43,12 @@ func AllStockList(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 		return
 	}
 
+	var price string
 	for rows.Next() {
 		var stock util.AllStockData
-		err := rows.Scan(&stock.Name, &stock.Price)
+		err := rows.Scan(&stock.Name, &price)
 
-		strPrice := strings.Split(stock.Price, ",")
+		strPrice := strings.Split(price, ",")
 		for _, i := range strPrice {
 			p, err := strconv.Atoi(i)
 			if err != nil {
