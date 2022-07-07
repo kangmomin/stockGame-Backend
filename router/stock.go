@@ -121,7 +121,7 @@ func BuyStock(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 
 	// 유저의 자본금 가져오기
-	err = db.QueryRow(`SELECT coin FROM account WHERE discord_id=$1;`, buyInfo.UserId).Scan(&userCoin)
+	err = db.QueryRow(`SELECT coin FROM account WHERE user_id=$1;`, buyInfo.UserId).Scan(&userCoin)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			util.GlobalErr(w, 404, "Not Found Data", nil)
