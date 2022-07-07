@@ -5,7 +5,6 @@ import (
 	"math/rand"
 	"stockServer/util"
 	"strconv"
-	"time"
 )
 
 func UpdateStock() {
@@ -91,15 +90,12 @@ func UpdateStock() {
 }
 
 func getNewStock() int {
-	s := rand.NewSource(time.Now().UnixMicro())
-	r := rand.New(s)
-
-	varPrice := r.Intn(101)
+	varPrice := rand.Intn(101)
 	if varPrice > 80 {
-		varPrice = r.Intn(101)
+		varPrice = getNewStock()
 	}
 
-	if r.Intn(2) == 0 {
+	if rand.Intn(2) == 0 {
 		varPrice *= -1
 	}
 
