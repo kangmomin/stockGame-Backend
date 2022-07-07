@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"log"
+	"math"
 	"net/http"
 	"stockServer/util"
 	"strconv"
@@ -178,10 +179,10 @@ func BuyStock(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 func SellStock(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var (
-		sellInfo   util.DealStock
-		stockInfo  util.Stock
-		price      int
-		stockCount int
+		sellInfo  util.DealStock
+		stockInfo util.UserStock
+		// 현재 주가
+		price int
 	)
 
 	err := json.NewDecoder(r.Body).Decode(&sellInfo)
@@ -189,25 +190,31 @@ func SellStock(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		util.GlobalErr(w, 400, "cannot read data", nil)
 		return
 	}
+	err = db.QueryRow(`SELECT stock_id FROM stocks WHERE 'is_valid'='t' AND name=$1`, &sellInfo.StockName).Err()
+	if err != nil {
+		if err == sql.ErrNoRows {
+			util.GlobalErr(w, 400, "Not found valid stocks", nil)
+			return
+		}
+
+		util.GlobalErr(w, 500, "Can Not found valid stocks", err)
+		return
+	}
 
 	// 가장 최신 주가
 	err = db.QueryRow(`
 	SELECT 
-		s.stock_id, s.data[array_upper(data, 1)], a.count 
-	FROM 
-		stocks s 
-	INNER JOIN 
-		user_stock a
-	ON
-		a.user_id=$2 
-	AND 
-		a.name=$1
+		price
+	FROM
+		stock_data 
 	WHERE
-		s.stock_name=$1 
-	AND
-		expire_t IS NULL;
-	`, sellInfo.StockName, sellInfo.UserId).
-		Scan(stockInfo.StockId, price, stockCount)
+		stock_name=$1 
+	AND 
+		data_id=(
+			SELECT MAX(data_id) FROM stock_data WHERE stock_name=$1
+		)
+	`, sellInfo.StockName).Scan(&price)
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			util.GlobalErr(w, 404, "Not Found Data", nil)
@@ -217,31 +224,57 @@ func SellStock(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		return
 	}
 
-	if stockCount < sellInfo.Count {
-		util.GlobalErr(w, 400, "over stock's count", nil)
-		return
-	}
-
-	_, err = db.Exec(`
-	UPDATE 
-		account 
-	SET 
-		coin=(
-			SELECT 
-				coin 
-			FROM 
-				account 
-			WHERE 
-				discord_id=$1
-		) + $2
-	`, sellInfo.UserId, sellInfo.Count*price)
+	// 유저의 보유 주식 정보 가져오기
+	err = db.QueryRow(`
+	SELECT 
+		cost, 
+		count 
+	FROM 
+		user_stock 
+	WHERE 
+		user_id=$1 
+	AND 
+		name=$2;
+	`, sellInfo.UserId, sellInfo.StockName).
+		Scan(&stockInfo.Cost, &stockInfo.Count)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			util.GlobalErr(w, 404, "Not Found User", nil)
+			util.GlobalErr(w, 404, "Not Found Data", nil)
 			return
 		}
-		util.GlobalErr(w, 400, "update error", err)
+		util.GlobalErr(w, 500, "Get Data error", err)
 		return
 	}
+
+	// 보유 주식량보다 많다면
+	if stockInfo.Count < sellInfo.Count {
+		util.GlobalErr(w, 400, "Not enough stock count", nil)
+		return
+	}
+	_, err = db.Exec(`
+			UPDATE user_stock SET cost=cost - $3, count=count - $4 WHERE user_id=$1 AND name=$2
+		`, sellInfo.UserId, sellInfo.StockName, price*sellInfo.Count, sellInfo.Count)
+
+	if err != nil {
+		util.GlobalErr(w, 500, "Update Data error", err)
+		return
+	}
+
+	_, err = db.Exec(`UPDATE account SET coin=coin+$2 WHERE user_id=$1`, sellInfo.UserId, price*sellInfo.Count)
+	if err != nil {
+		util.GlobalErr(w, 500, "Update Data error", err)
+		return
+	}
+
+	y := math.Round(
+		float64(
+			(((price*stockInfo.Count)/stockInfo.Cost)*100-100)*100)) / 100
+	util.ResOk(w, 200, util.SellStockRes{
+		StockName: sellInfo.StockName,
+		Yield:     y,
+		Proceeds: int(
+			math.Round(
+				float64(stockInfo.Cost) * y * float64(stockInfo.Count))),
+	})
 }

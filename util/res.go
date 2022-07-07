@@ -30,3 +30,19 @@ func GlobalErr(w http.ResponseWriter, code int, data string, err error) {
 
 	fmt.Fprint(w, string(resData))
 }
+
+type SellStockRes struct {
+	StockName string `json:"stock_name"`
+
+	// 수익률
+	Yield float64 `json:"yield"`
+
+	// 수익금
+	Proceeds int `json:"proceeds"`
+
+	// // 자본금
+	// Coin int `json:"coin"`
+
+	// // 남은 주식 개수
+	// Count int `json:"count"`
+}
