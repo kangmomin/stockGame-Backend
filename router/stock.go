@@ -109,7 +109,7 @@ func BuyStock(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		data_id=(
 			SELECT MAX(data_id) FROM stock_data WHERE stock_name=$1
 		)
-	`, buyInfo.StockName).Scan(price)
+	`, buyInfo.StockName).Scan(&price)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
