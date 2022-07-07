@@ -76,9 +76,6 @@ func BuyStock(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		// 주식 가격
 		price    int
 		userCoin int
-
-		// 주식 원가
-		cost int
 	)
 
 	err := json.NewDecoder(r.Body).Decode(&buyInfo)
@@ -149,7 +146,7 @@ func BuyStock(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 			INSERT INTO
 				user_stock
 			VALUES($1, $2, $3, $4)
-		`, buyInfo.UserId, buyInfo.StockName, cost, buyInfo.Count)
+		`, buyInfo.UserId, buyInfo.StockName, price*buyInfo.Count, buyInfo.Count)
 
 		if err != nil {
 			util.GlobalErr(w, 500, "Update Data error", err)
@@ -161,7 +158,7 @@ func BuyStock(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	} else {
 		_, err = db.Exec(`
 			UPDATE user_stock SET cost=cost + $3, count=count + $4 WHERE user_id=$1 AND name=$2
-		`, buyInfo.UserId, buyInfo.StockName, cost, buyInfo.Count)
+		`, buyInfo.UserId, buyInfo.StockName, price*buyInfo.Count, buyInfo.Count)
 
 		if err != nil {
 			util.GlobalErr(w, 500, "Update Data error", err)
