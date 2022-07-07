@@ -137,27 +137,33 @@ func BuyStock(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		return
 	}
 
-	_, err = db.Exec(`
-	UPDATE 
-		user_stock 
-	SET 
-		count=$1, cost=$2 
-	WHERE 
-		user_id=$3 NOT EXIST (
+	err = db.QueryRow(`
+		SELECT user_id FROM user_stock WHERE user_id=$1 AND name=$2;
+	`, buyInfo.UserId, buyInfo.StockName).Scan(&buyInfo.UserId)
+
+	if err == sql.ErrNoRows {
+		_, err = db.Exec(`
 			INSERT INTO
 				user_stock
-			VALUES
-				($3, $4, $2, $1)
-		);
-	`, buyInfo.Count, cost, buyInfo.UserId, buyInfo.StockName)
+			VALUES($1, $2, $3, $4)
+		`, buyInfo.UserId, buyInfo.StockName, cost, buyInfo.Count)
 
-	if err != nil {
-		if err == sql.ErrNoRows {
-			util.GlobalErr(w, 404, "Not Found Data", nil)
+		if err != nil {
+			util.GlobalErr(w, 500, "Update Data error", err)
 			return
 		}
-		util.GlobalErr(w, 500, "Update Data error", err)
+	} else if err != nil {
+		util.GlobalErr(w, 500, "cannot update or create", err)
 		return
+	} else {
+		_, err = db.Exec(`
+			UPDATE user_stock SET cost=$3, count=$4 WHERE user_id=$1 AND name=$2
+		`, buyInfo.UserId, buyInfo.StockName, cost, buyInfo.Count)
+
+		if err != nil {
+			util.GlobalErr(w, 500, "Update Data error", err)
+			return
+		}
 	}
 
 	util.ResOk(w, 200, "update success")
