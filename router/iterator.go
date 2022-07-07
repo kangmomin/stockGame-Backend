@@ -23,14 +23,30 @@ func UpdateStock() {
 	i = 1
 
 	rows, err := db.Query(`
-		SELECT 
-			stock_name, price 
-		FROM 
-			stock_data 
-		WHERE 
-			stock_name=(
-				SELECT name FROM stocks WHERE is_valid='t'
-			);
+	SELECT
+		T1.stock_name,
+		T1.price
+	FROM 
+		stock_data T1
+		INNER JOIN (
+			SELECT 
+				stock_name, 
+				max(data_id) max_id
+			FROM
+				stock_data
+			INNER JOIN 
+				stocks
+			ON 
+				stock_data.stock_name = stocks.name
+			WHERE 
+				is_valid='t'
+			GROUP BY 
+				stock_name 
+			) T2
+		ON 
+			T1.data_id = T2.max_id 
+		AND 
+			T1.stock_name = T2.stock_name;
 		`)
 	if err != nil {
 		log.Println(err)
